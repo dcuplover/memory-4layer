@@ -13,9 +13,23 @@
       "enabled": { "type": "boolean", "default": true },
       "autoCapture": { "type": "boolean", "default": true },
       "autoRecall": { "type": "boolean", "default": true },
+      "dbPath": { "type": "string", "default": "~/.openclaw/memory-db" },
+      "vectorDimension": { "type": "number", "enum": [384, 1536], "default": 1536 },
+      "embedding": {
+        "type": "object",
+        "properties": {
+          "apiKey": { "type": "string" },
+          "model": { "type": "string", "default": "text-embedding-3-small" },
+          "baseURL": { "type": "string", "default": "https://api.openai.com/v1" },
+          "dimensions": { "type": "number", "default": 1536 }
+        },
+        "required": ["apiKey"],
+        "additionalProperties": false
+      },
       "collector": {
         "type": "object",
         "properties": {
+          "enabled": { "type": "boolean", "default": true },
           "maxLogChars": { "type": "number", "default": 800 },
           "dedupeWindowMs": { "type": "number", "default": 300000 },
           "minMessageLength": { "type": "number", "default": 5 },
@@ -35,65 +49,76 @@
         },
         "additionalProperties": false
       },
-      "layers": {
+      "router": {
         "type": "object",
         "properties": {
-          "stm": {
-            "type": "object",
-            "properties": {
-              "ttlMs": { "type": "number", "default": 3600000 },
-              "maxEntries": { "type": "number", "default": 500 }
-            },
-            "additionalProperties": false
-          },
-          "episodic": {
-            "type": "object",
-            "properties": {
-              "retentionDays": { "type": "number", "default": 30 },
-              "maxEntries": { "type": "number", "default": 10000 }
-            },
-            "additionalProperties": false
-          },
-          "knowledge": {
-            "type": "object",
-            "properties": {
-              "maxEntries": { "type": "number", "default": 2000 },
-              "syncToMemoryMd": { "type": "boolean", "default": true }
-            },
-            "additionalProperties": false
-          },
-          "structural": {
-            "type": "object",
-            "properties": {
-              "maxEntities": { "type": "number", "default": 1000 },
-              "maxRelations": { "type": "number", "default": 5000 }
-            },
-            "additionalProperties": false
-          }
+          "classifyMode": { "type": "string", "enum": ["rules_only", "rules_then_llm", "llm_only"], "default": "rules_then_llm" },
+          "llmModel": { "type": "string", "default": "haiku" },
+          "llmMaxTokens": { "type": "number", "default": 200 },
+          "stmTTLMs": { "type": "number", "default": 3600000 },
+          "minConfidenceForKnowledge": { "type": "number", "default": 0.7 },
+          "minConfidenceForStructural": { "type": "number", "default": 0.8 },
+          "batchSize": { "type": "number", "default": 5 },
+          "batchDelayMs": { "type": "number", "default": 100 }
         },
         "additionalProperties": false
       },
-      "compaction": {
+      "store": {
         "type": "object",
         "properties": {
-          "intervalHours": { "type": "number", "default": 1 },
-          "stmMaxEntries": { "type": "number", "default": 500 },
-          "episodicRetentionDays": { "type": "number", "default": 30 },
-          "knowledgeMergeSimilarityThreshold": { "type": "number", "default": 0.92 },
-          "memoryMdMaxTokens": { "type": "number", "default": 10000 }
+          "tables": {
+            "type": "object",
+            "properties": {
+              "stm": { "type": "object", "properties": { "maxEntries": { "type": "number", "default": 500 } }, "additionalProperties": false },
+              "episodic": { "type": "object", "properties": { "maxEntries": { "type": "number", "default": 10000 } }, "additionalProperties": false },
+              "knowledge": { "type": "object", "properties": { "maxEntries": { "type": "number", "default": 2000 } }, "additionalProperties": false },
+              "entities": { "type": "object", "properties": { "maxEntries": { "type": "number", "default": 1000 } }, "additionalProperties": false },
+              "relations": { "type": "object", "properties": { "maxEntries": { "type": "number", "default": 5000 } }, "additionalProperties": false }
+            },
+            "additionalProperties": false
+          },
+          "vectorIndexType": { "type": "string", "enum": ["IVF_PQ", "HNSW"], "default": "IVF_PQ" },
+          "ftsEnabled": { "type": "boolean", "default": true },
+          "ftsLanguage": { "type": "string", "enum": ["english", "chinese", "auto"], "default": "auto" },
+          "batchSize": { "type": "number", "default": 100 },
+          "vacuumIntervalMs": { "type": "number", "default": 86400000 }
         },
         "additionalProperties": false
       },
-      "retrieval": {
+      "retriever": {
         "type": "object",
         "properties": {
           "topK": { "type": "number", "default": 10 },
           "minScore": { "type": "number", "default": 0.3 },
+          "maxContentLength": { "type": "number", "default": 500 },
+          "layerWeights": {
+            "type": "object",
+            "properties": {
+              "stm": { "type": "number", "default": 0.8 },
+              "episodic": { "type": "number", "default": 1.0 },
+              "knowledge": { "type": "number", "default": 1.2 },
+              "structural": { "type": "number", "default": 1.1 }
+            },
+            "additionalProperties": false
+          },
+          "fusionWeights": {
+            "type": "object",
+            "properties": {
+              "vector": { "type": "number", "default": 0.4 },
+              "bm25": { "type": "number", "default": 0.2 },
+              "recency": { "type": "number", "default": 0.2 },
+              "importance": { "type": "number", "default": 0.2 }
+            },
+            "additionalProperties": false
+          },
           "rerankEnabled": { "type": "boolean", "default": false },
           "rerankModel": { "type": "string", "default": "cross-encoder/ms-marco-MiniLM-L-6-v2" },
           "rerankTopK": { "type": "number", "default": 20 },
           "rerankBaseURL": { "type": "string", "default": "" },
-          "timeoutMs": { "type": "number", "default": 5000 }
+          "parallelLayers": { "type": "boolean", "default": true },
+          "timeoutMs": { "type": "number", "default": 5000 },
+          "dedupeThreshold": { "type": "number", "default": 0.9 },
+          "recencyHalfLifeMs": { "type": "number", "default": 86400000 }
         },
         "additionalProperties": false
       },
@@ -106,18 +131,58 @@
         },
         "additionalProperties": false
       },
-      "embedding": {
+      "compactor": {
         "type": "object",
         "properties": {
-          "apiKey": { "type": "string" },
-          "model": { "type": "string", "default": "text-embedding-3-small" },
-          "baseURL": { "type": "string", "default": "https://api.openai.com/v1" },
-          "dimensions": { "type": "number", "default": 1536 }
+          "compaction": {
+            "type": "object",
+            "properties": {
+              "intervalMs": { "type": "number", "default": 3600000 },
+              "enableHookTrigger": { "type": "boolean", "default": true },
+              "enableThresholdTrigger": { "type": "boolean", "default": true }
+            },
+            "additionalProperties": false
+          },
+          "stm": {
+            "type": "object",
+            "properties": {
+              "maxEntries": { "type": "number", "default": 500 },
+              "promoteThreshold": { "type": "number", "default": 0.7 },
+              "promoteWindowMs": { "type": "number", "default": 300000 }
+            },
+            "additionalProperties": false
+          },
+          "episodic": {
+            "type": "object",
+            "properties": {
+              "maxEntries": { "type": "number", "default": 10000 },
+              "retentionMs": { "type": "number", "default": 2592000000 },
+              "chainAgeThresholdMs": { "type": "number", "default": 86400000 },
+              "minChainLengthForCompression": { "type": "number", "default": 3 }
+            },
+            "additionalProperties": false
+          },
+          "knowledge": {
+            "type": "object",
+            "properties": {
+              "maxEntries": { "type": "number", "default": 2000 },
+              "mergeSimilarityThreshold": { "type": "number", "default": 0.92 }
+            },
+            "additionalProperties": false
+          },
+          "memoryMd": {
+            "type": "object",
+            "properties": {
+              "enabled": { "type": "boolean", "default": true },
+              "maxEntries": { "type": "number", "default": 150 },
+              "maxTokens": { "type": "number", "default": 10000 },
+              "path": { "type": "string", "default": "MEMORY.md" }
+            },
+            "additionalProperties": false
+          }
         },
-        "required": ["apiKey"],
         "additionalProperties": false
-      },
-      "dbPath": { "type": "string", "default": "~/.openclaw/memory-db" }
+      }
     },
     "required": ["embedding"],
     "additionalProperties": false
@@ -161,19 +226,19 @@
       "description": "事件去重时间窗口",
       "advanced": true
     },
-    "compaction.intervalHours": {
-      "label": "压缩间隔（小时）",
+    "compactor.compaction.intervalMs": {
+      "label": "压缩间隔（毫秒）",
       "description": "定时压缩任务的触发间隔"
     },
-    "retrieval.topK": {
+    "retriever.topK": {
       "label": "检索数量",
       "description": "默认返回的记忆条目数"
     },
-    "retrieval.minScore": {
+    "retriever.minScore": {
       "label": "最低分数阈值",
       "description": "记忆检索的最低相似度分数（0-1）"
     },
-    "retrieval.rerankEnabled": {
+    "retriever.rerankEnabled": {
       "label": "启用 Re-ranker",
       "description": "开启后使用交叉编码器重排序检索结果，需配合 rerank 配置块提供 API Key",
       "advanced": true
