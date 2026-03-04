@@ -16,7 +16,8 @@ import type { MemoryStore, EmbeddingProvider } from "./src/store";
 import type { HookContext } from "./src/types/evidence";
 import type { LayerRouter } from "./src/pipeline/router";
 import { createRetriever } from "./src/retrieval/retriever";
-import type { Retriever, RetrievedEntry } from "./src/retrieval/types";
+import { createRerankProvider } from "./src/retrieval/reranker";
+import type { Retriever, RetrievedEntry, RerankProvider } from "./src/retrieval/types";
 import { createCompactor } from "./src/lifecycle/compactor";
 import type { Compactor } from "./src/lifecycle/types";
 import { parseConfig } from "./src/config";
@@ -96,8 +97,17 @@ const definition = {
           dimension: config.vectorDimension,
         };
 
-        retriever = createRetriever(config.retriever, store, embeddingProvider, api.log);
-        api.log.info("[memory] Retriever 初始化完成");
+        retriever = createRetriever(config.retriever, store, embeddingProvider, api.log,
+          // 条件创建 RerankProvider
+          config.retriever.rerankEnabled && config.rerank?.apiKey
+            ? createRerankProvider({
+                baseURL: config.rerank.baseURL || config.retriever.rerankBaseURL || "https://api.cohere.ai/v1",
+                apiKey: config.rerank.apiKey,
+                model: config.rerank.model || config.retriever.rerankModel,
+              })
+            : undefined
+        );
+        api.log.info(`[memory] Retriever 初始化完成${config.retriever.rerankEnabled ? "（Re-ranker 已启用）" : ""}`);
       } catch (err) {
         api.log.error("[memory] Retriever 初始化失败：", err);
       }

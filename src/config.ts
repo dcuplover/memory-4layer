@@ -56,6 +56,13 @@ export interface PluginConfig {
   /** 检索器配置 */
   retriever: RetrieverConfig;
 
+  /** Re-ranker 配置（可选，启用时需提供 apiKey） */
+  rerank?: {
+    apiKey: string;
+    baseURL?: string;
+    model?: string;
+  };
+
   /** 压缩器配置 */
   compactor: CompactorConfig;
 }
@@ -92,8 +99,7 @@ export function parseConfig(raw: unknown): PluginConfig {
   const routerInput = (input.router as Partial<RouterConfig>) || {};
   const retrieverInput = (input.retriever as Partial<RetrieverConfig>) || {};
   const compactorInput = (input.compactor as Partial<CompactorConfig>) || {};
-  const storeInput = (input.store as Partial<StoreConfig>) || {};
-
+  const storeInput = (input.store as Partial<StoreConfig>) || {};  const rerankInput = (input.rerank as Record<string, unknown>) || {};
   // ── 4. 构造完整配置对象 ───────────────────────────────────────────────
   return {
     enabled,
@@ -127,7 +133,17 @@ export function parseConfig(raw: unknown): PluginConfig {
     retriever: {
       ...DEFAULT_RETRIEVER_CONFIG,
       ...retrieverInput,
+      // 将 rerank 配置中的模型和基址同步到 retriever
+      ...(rerankInput.model ? { rerankModel: rerankInput.model as string } : {}),
+      ...(rerankInput.baseURL ? { rerankBaseURL: rerankInput.baseURL as string } : {}),
     },
+    rerank: rerankInput.apiKey
+      ? {
+          apiKey: rerankInput.apiKey as string,
+          baseURL: (rerankInput.baseURL as string) || "",
+          model: (rerankInput.model as string) || DEFAULT_RETRIEVER_CONFIG.rerankModel,
+        }
+      : undefined,
     compactor: {
       ...DEFAULT_COMPACTOR_CONFIG,
       ...compactorInput,

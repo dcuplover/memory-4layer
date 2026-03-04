@@ -16,6 +16,7 @@ import type {
   ScoredEntry,
   RetrieverStats,
   FusionWeights,
+  RerankProvider,
 } from "./types";
 import type { MemoryStore, EmbeddingProvider, FilterExpression } from "../store/types";
 import type { Logger } from "../types/evidence";
@@ -27,7 +28,8 @@ export function createRetriever(
   config: RetrieverConfig,
   store: MemoryStore,
   embeddingProvider: EmbeddingProvider,
-  logger?: Logger
+  logger?: Logger,
+  rerankProvider?: RerankProvider
 ): Retriever {
   // 统计数据
   const stats = {
@@ -545,8 +547,27 @@ export function createRetriever(
       // 6. RRF 跨层融合
       const fusedEntries = allEntries.length > 0 ? fusionRRF([allEntries], 60) : [];
 
-      // 7. 后处理
-      const finalEntries = postProcess(fusedEntries);
+      // 7. Re-rank（可选）
+      let rerankedEntries = fusedEntries;
+      if (config.rerankEnabled && rerankProvider && fusedEntries.length > 1) {
+        try {
+          const candidates = fusedEntries.slice(0, config.rerankTopK);
+          const documents = candidates.map((e) => e.content);
+          const rerankResults = await rerankProvider.rerank(query.text, documents, topK);
+
+          // 按 rerank score 重新排序
+          rerankedEntries = rerankResults.map((r) => ({
+            ...candidates[r.index],
+            score: r.score,
+          }));
+        } catch (err) {
+          logger?.warn("[retriever] Re-rank failed, falling back to fusion order", { error: err });
+          // fallback: 继续使用 fusedEntries
+        }
+      }
+
+      // 8. 后处理
+      const finalEntries = postProcess(rerankedEntries);
 
       // 8. 构建结果
       const queryTimeMs = Date.now() - startTime;

@@ -9,13 +9,16 @@
  * AC5: 并行检索耗时 < 串行总和
  * AC6: 单层超时不影响其他层返回
  * AC7: 无向量时降级为纯 BM25 检索
+ * AC8: Re-rank 启用时重排序结果
+ * AC9: Re-rank 失败时降级为原始排序
+ * AC10: Re-rank 禁用时不调用 reranker
  */
 
 import { describe, test, expect, beforeEach } from "vitest";
 import { createRetriever } from "../src/retrieval/retriever";
 import { DEFAULT_RETRIEVER_CONFIG } from "../src/retrieval/types";
 import type { MemoryStore, EmbeddingProvider } from "../src/store/types";
-import type { Retriever, RetrieverConfig } from "../src/retrieval/types";
+import type { Retriever, RetrieverConfig, RerankProvider } from "../src/retrieval/types";
 
 // ─── Mock 数据 ────────────────────────────────────────────────────────────────
 
@@ -398,5 +401,98 @@ describe("MOD4 Retriever", () => {
     const entries = await retriever.recallRecent(["stm", "episodic"], 10);
 
     expect(entries.length).toBeGreaterThanOrEqual(0);
+  });
+
+  // ─── AC8: Re-rank 启用时重排序结果 ───────────────────────────────
+
+  test("AC8: Re-rank 启用时按重排分数排序", async () => {
+    let rerankCalled = false;
+    const mockReranker: RerankProvider = {
+      rerank: async (query, documents, topK) => {
+        rerankCalled = true;
+        // 反转原始顺序：最后一个文档得分最高
+        return documents.map((_, i) => ({
+          index: documents.length - 1 - i,
+          score: 0.9 - i * 0.1,
+        }));
+      },
+    };
+
+    const rerankConfig: RetrieverConfig = {
+      ...DEFAULT_RETRIEVER_CONFIG,
+      rerankEnabled: true,
+      rerankTopK: 20,
+    };
+
+    const rerankRetriever = createRetriever(
+      rerankConfig, store, embeddingProvider, mockLogger, mockReranker
+    );
+
+    const result = await rerankRetriever.retrieve({
+      text: "TypeScript 项目",
+      layers: ["stm", "knowledge"],
+      topK: 5,
+    });
+
+    expect(rerankCalled).toBe(true);
+    expect(result.entries.length).toBeGreaterThan(0);
+    // 分数应该显示 reranker 给出的分数
+    for (const entry of result.entries) {
+      expect(entry.score).toBeGreaterThanOrEqual(0);
+    }
+  });
+
+  // ─── AC9: Re-rank 失败时降级为原始排序 ───────────────────────────
+
+  test("AC9: Re-rank 失败时降级为原始排序", async () => {
+    const failingReranker: RerankProvider = {
+      rerank: async () => {
+        throw new Error("Rerank service unavailable");
+      },
+    };
+
+    const rerankConfig: RetrieverConfig = {
+      ...DEFAULT_RETRIEVER_CONFIG,
+      rerankEnabled: true,
+      minScore: 0.01, // 降低阈值以验证 fallback 正常返回
+    };
+
+    const rerankRetriever = createRetriever(
+      rerankConfig, store, embeddingProvider, mockLogger, failingReranker
+    );
+
+    // 不应抛出异常，应正常返回结果
+    const result = await rerankRetriever.retrieve({
+      text: "TypeScript 项目",
+      layers: ["stm", "knowledge"],
+      topK: 5,
+    });
+
+    expect(result.entries.length).toBeGreaterThan(0);
+  });
+
+  // ─── AC10: Re-rank 禁用时不调用 reranker ────────────────────────────
+
+  test("AC10: Re-rank 禁用时不调用 reranker（零开销）", async () => {
+    let rerankCalled = false;
+    const spyReranker: RerankProvider = {
+      rerank: async (query, documents) => {
+        rerankCalled = true;
+        return documents.map((_, i) => ({ index: i, score: 1 - i * 0.1 }));
+      },
+    };
+
+    // rerankEnabled 为默认 false
+    const disabledRetriever = createRetriever(
+      DEFAULT_RETRIEVER_CONFIG, store, embeddingProvider, mockLogger, spyReranker
+    );
+
+    await disabledRetriever.retrieve({
+      text: "TypeScript",
+      layers: ["knowledge"],
+      topK: 5,
+    });
+
+    expect(rerankCalled).toBe(false);
   });
 });

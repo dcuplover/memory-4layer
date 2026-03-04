@@ -140,6 +140,9 @@ export interface RetrieverConfig {
   /** Re-rank 前的候选数 */
   rerankTopK: number;
 
+  /** Re-ranker API Base URL（可选） */
+  rerankBaseURL: string;
+
   /** 是否并行检索各层 */
   parallelLayers: boolean;
 
@@ -173,6 +176,7 @@ export const DEFAULT_RETRIEVER_CONFIG: RetrieverConfig = {
   rerankEnabled: false,
   rerankModel: "cross-encoder/ms-marco-MiniLM-L-6-v2",
   rerankTopK: 20,
+  rerankBaseURL: "",
   parallelLayers: true,
   timeoutMs: 5000,
   dedupeThreshold: 0.9,
@@ -227,4 +231,27 @@ export interface ScoredEntry {
   };
   metadata: Record<string, unknown>;
   timestamp?: number; // 用于计算时效性
+}
+
+// ─── Re-ranker 类型 ──────────────────────────────────────────────────────────
+
+/** Re-rank 单条结果 */
+export interface RerankResult {
+  /** 原始索引（对应输入 documents 数组的位置） */
+  index: number;
+  /** Re-ranker 给出的相关性得分 */
+  score: number;
+}
+
+/** Re-ranker 提供者接口 */
+export interface RerankProvider {
+  /**
+   * 对候选文档进行重排序。
+   *
+   * @param query      查询文本
+   * @param documents  候选文档列表
+   * @param topK       返回前 N 条（可选，默认全部）
+   * @returns          按相关性降序排列的结果
+   */
+  rerank(query: string, documents: string[], topK?: number): Promise<RerankResult[]>;
 }

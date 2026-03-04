@@ -90,7 +90,19 @@
           "topK": { "type": "number", "default": 10 },
           "minScore": { "type": "number", "default": 0.3 },
           "rerankEnabled": { "type": "boolean", "default": false },
+          "rerankModel": { "type": "string", "default": "cross-encoder/ms-marco-MiniLM-L-6-v2" },
+          "rerankTopK": { "type": "number", "default": 20 },
+          "rerankBaseURL": { "type": "string", "default": "" },
           "timeoutMs": { "type": "number", "default": 5000 }
+        },
+        "additionalProperties": false
+      },
+      "rerank": {
+        "type": "object",
+        "properties": {
+          "apiKey": { "type": "string" },
+          "baseURL": { "type": "string", "default": "" },
+          "model": { "type": "string", "default": "cross-encoder/ms-marco-MiniLM-L-6-v2" }
         },
         "additionalProperties": false
       },
@@ -160,6 +172,22 @@
     "retrieval.minScore": {
       "label": "最低分数阈值",
       "description": "记忆检索的最低相似度分数（0-1）"
+    },
+    "retrieval.rerankEnabled": {
+      "label": "启用 Re-ranker",
+      "description": "开启后使用交叉编码器重排序检索结果，需配合 rerank 配置块提供 API Key",
+      "advanced": true
+    },
+    "rerank.apiKey": {
+      "label": "Re-ranker API Key",
+      "sensitive": true,
+      "placeholder": "sk-...",
+      "description": "Re-ranker 服务的 API Key（Cohere / Jina 等）"
+    },
+    "rerank.baseURL": {
+      "label": "Re-ranker Base URL",
+      "description": "Re-ranker 服务端点（可选，自定义部署时填写）",
+      "advanced": true
     }
   }
 }
