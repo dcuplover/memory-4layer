@@ -11,6 +11,7 @@
  * AC7: 无向量时降级为纯 BM25 检索
  */
 
+import { describe, test, expect, beforeEach } from "vitest";
 import { createRetriever } from "../src/retrieval/retriever";
 import { DEFAULT_RETRIEVER_CONFIG } from "../src/retrieval/types";
 import type { MemoryStore, EmbeddingProvider } from "../src/store/types";
@@ -320,7 +321,7 @@ describe("MOD4 Retriever", () => {
           return [];
         }
         // 其他层正常返回
-        return store.vectorSearch(table, vector, options);
+        return store.vectorSearch(table as any, vector, options);
       },
     } as MemoryStore;
 

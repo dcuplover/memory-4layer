@@ -205,9 +205,9 @@ export class LanceDBStore implements MemoryStore {
           r as Record<string, unknown>
         );
         // 距离 → 相似度分数（余弦距离：score = 1 - distance）
-        const dist = (row as Record<string, unknown>)["_distance"] as number | undefined;
+        const dist = (row as unknown as Record<string, unknown>)["_distance"] as number | undefined;
         const score = dist !== undefined ? Math.max(0, 1 - dist) : 1;
-        delete (row as Record<string, unknown>)["_distance"];
+        delete (row as unknown as Record<string, unknown>)["_distance"];
         return { ...row, _score: score } as T & { _score: number };
       })
       .filter((r) => options.minScore === undefined || r._score >= options.minScore);
@@ -264,8 +264,8 @@ export class LanceDBStore implements MemoryStore {
       const col = options.orderBy;
       const dir = options.orderDir ?? "asc";
       results = results.sort((a, b) => {
-        const av = (a as Record<string, unknown>)[col];
-        const bv = (b as Record<string, unknown>)[col];
+        const av = (a as unknown as Record<string, unknown>)[col];
+        const bv = (b as unknown as Record<string, unknown>)[col];
         if (av === undefined || bv === undefined) return 0;
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         return dir === "asc" ? (av as any) - (bv as any) : (bv as any) - (av as any);

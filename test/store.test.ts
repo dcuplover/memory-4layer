@@ -218,7 +218,7 @@ describe("AC3: 全文搜索支持中英文", () => {
   it("英文全文搜索", async () => {
     await store.insert("stm", makeSTM({ content: "TypeScript is amazing" }));
     await store.insert("stm", makeSTM({ content: "Python is great" }));
-    const results = await store.textSearch("stm", "TypeScript", { topK: 5 });
+    const results = await store.textSearch<STMEntry>("stm", "TypeScript", { topK: 5 });
     expect(results.length).toBeGreaterThanOrEqual(1);
     expect(results.some((r) => r.content.includes("TypeScript"))).toBe(true);
   });
@@ -226,7 +226,7 @@ describe("AC3: 全文搜索支持中英文", () => {
   it("中文全文搜索", async () => {
     await store.insert("stm", makeSTM({ content: "用户询问了部署问题" }));
     await store.insert("stm", makeSTM({ content: "系统配置已更新" }));
-    const results = await store.textSearch("stm", "部署", { topK: 5 });
+    const results = await store.textSearch<STMEntry>("stm", "部署", { topK: 5 });
     expect(results.length).toBeGreaterThanOrEqual(1);
     expect(results.some((r) => r.content.includes("部署"))).toBe(true);
   });
