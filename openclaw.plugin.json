@@ -8,6 +8,7 @@
     "type": "object",
     "properties": {
       "enabled": { "type": "boolean", "default": true },
+      "registrationOnly": { "type": "boolean", "default": false },
       "autoCapture": { "type": "boolean", "default": true },
       "autoRecall": { "type": "boolean", "default": true },
       "dbPath": { "type": "string", "default": "~/.openclaw/memory-db" },
@@ -208,6 +209,11 @@
     "autoCapture": {
       "label": "自动采集",
       "description": "是否自动采集 Hook 事件到记忆系统"
+    },
+    "registrationOnly": {
+      "label": "仅注册模式",
+      "description": "仅注册 Tools/CLI 后立即返回（用于联调注册链路）",
+      "advanced": true
     },
     "autoRecall": {
       "label": "自动召回",

@@ -9,6 +9,7 @@
     "dev": "tsc --watch",
     "test": "vitest run",
     "test:mod6": "vitest run test/mod6-registration.test.ts",
+    "test:registration-only": "vitest run test/registration-only-mode.test.ts",
     "test:watch": "vitest",
     "lint": "eslint src --ext .ts"
   },

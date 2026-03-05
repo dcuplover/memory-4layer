@@ -57,6 +57,36 @@ const definition = {
       return;
     }
 
+    // 仅注册模式：用于联调 Tool/CLI 注册链路，避免初始化后续模块。
+    if (config.registrationOnly) {
+      const getStore = async (): Promise<undefined> => undefined;
+      const getRetriever = async (): Promise<undefined> => undefined;
+      const getCompactor = async (): Promise<undefined> => undefined;
+
+      try {
+        registerTools(api, {
+          getStore,
+          getRetriever,
+          vectorDimension: config.embedding.dimensions ?? 1536,
+        });
+        log.info(
+          "[memory] Tools 已注册 (memory_recall, memory_store, memory_forget, memory_stats)"
+        );
+      } catch (err) {
+        log.error("[memory] Tools 注册失败：", err);
+      }
+
+      try {
+        registerCli(api, { getStore, getRetriever, getCompactor });
+        log.info("[memory] CLI 已注册 (search, stats, compact, export, import, conflicts)");
+      } catch (err) {
+        log.error("[memory] CLI 注册失败：", err);
+      }
+
+      log.info("[memory] registrationOnly=true，已在注册步骤停止初始化");
+      return;
+    }
+
     const { autoCapture, autoRecall } = config;
 
     // ── 2. 初始化 MOD1：EventCollector（同步） ────────────────────────────

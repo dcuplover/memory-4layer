@@ -24,6 +24,9 @@ export interface PluginConfig {
   /** 是否启用插件（默认 true） */
   enabled: boolean;
 
+  /** 仅注册 MOD6（Tools/CLI）后立即返回，不继续初始化后续模块 */
+  registrationOnly: boolean;
+
   /** 是否自动采集 Hook 事件（默认 true） */
   autoCapture: boolean;
 
@@ -89,6 +92,7 @@ export function parseConfig(raw: unknown): PluginConfig {
 
   // ── 2. 合并顶层配置 ───────────────────────────────────────────────────
   const enabled = (input.enabled as boolean) ?? true;
+  const registrationOnly = (input.registrationOnly as boolean) ?? false;
   const autoCapture = (input.autoCapture as boolean) ?? true;
   const autoRecall = (input.autoRecall as boolean) ?? true;
   const dbPath = (input.dbPath as string) || "~/.openclaw/memory-db";
@@ -103,6 +107,7 @@ export function parseConfig(raw: unknown): PluginConfig {
   // ── 4. 构造完整配置对象 ───────────────────────────────────────────────
   return {
     enabled,
+    registrationOnly,
     autoCapture,
     autoRecall,
     dbPath,

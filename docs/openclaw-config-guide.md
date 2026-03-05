@@ -277,6 +277,7 @@ openclaw doctor --fix
 | 参数名            | 类型    | 默认值                    | 说明                                 |
 | ----------------- | ------- | ------------------------- | ------------------------------------ |
 | `enabled`         | boolean | `true`                    | 插件业务层开关，写在 `config` 内；框架层的 `enabled`（见第 3 节）写在 `entries.<id>` 下，两者相互独立 |
+| `registrationOnly`| boolean | `false`                   | 仅运行到 MOD6 注册步骤（Tools/CLI），不继续初始化后续模块 |
 | `autoCapture`     | boolean | `true`                    | 是否自动采集 Hook 事件到记忆系统     |
 | `autoRecall`      | boolean | `true`                    | 是否在 Agent 启动前自动注入相关记忆  |
 | `dbPath`          | string  | `~/.openclaw/memory-db`   | LanceDB 本地存储路径，支持 `~` 扩展  |
@@ -419,6 +420,7 @@ openclaw doctor --fix
 | 嵌入模型 API Key                    | `config.embedding.apiKey`                                        |
 | 使用国产/自定义嵌入 API             | `config.embedding.baseURL`                                       |
 | 数据库存储位置                      | `config.dbPath`                                                  |
+| 仅验证 Tool/CLI 注册链路            | `config.registrationOnly: true`                                 |
 | 关闭自动记忆采集                    | `config.autoCapture: false`                                      |
 | 关闭自动记忆召回                    | `config.autoRecall: false`                                       |
 | 检索返回条数                        | `config.retriever.topK`                                          |

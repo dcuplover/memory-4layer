@@ -4,6 +4,8 @@ This guide verifies only MOD6 registration paths:
 - tool registration (`registerTools`)
 - cli registration (`registerCli`)
 
+It also supports real runtime testing by enabling `registrationOnly` in plugin config.
+
 It does not validate full memory storage/retrieval behavior.
 
 ## Option A: Deploy via Git (recommended)
@@ -11,8 +13,8 @@ It does not validate full memory storage/retrieval behavior.
 ### Local machine
 
 ```bash
-git add package.json test/mod6-registration.test.ts scripts/mod6-smoke.sh docs/server-mod6-smoke.md
-git commit -m "test: add MOD6 registration smoke tests and server runner"
+git add package.json index.ts src/config.ts openclaw.plugin.json docs/openclaw-config-guide.md docs/server-mod6-smoke.md scripts/mod6-smoke.sh test/mod6-registration.test.ts test/registration-only-mode.test.ts
+git commit -m "feat: add registrationOnly runtime mode for MOD6 registration test"
 git push origin main
 ```
 
@@ -27,6 +29,38 @@ bash scripts/mod6-smoke.sh
 Expected result:
 - `npm run build` succeeds
 - `npm run test:mod6` shows all tests passed
+
+## Real runtime test (registration only)
+
+In your OpenClaw config, set:
+
+```json
+{
+	"plugins": {
+		"slots": {
+			"memory": "memory-4layer"
+		},
+		"entries": {
+			"memory-4layer": {
+				"enabled": true,
+				"config": {
+					"registrationOnly": true,
+					"embedding": {
+						"apiKey": "sk-..."
+					}
+				}
+			}
+		}
+	}
+}
+```
+
+Then start OpenClaw normally and verify logs contain:
+- `Tools 已注册`
+- `CLI 已注册`
+- `registrationOnly=true，已在注册步骤停止初始化`
+
+And no logs for `MemoryStore 初始化完成` / `Retriever 初始化完成` / `Compactor 初始化完成`.
 
 ## Option B: Deploy via tarball (if server cannot access GitHub)
 
