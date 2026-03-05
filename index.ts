@@ -31,7 +31,7 @@ import { createEmbeddingProvider } from "./src/utils/embedding";
 
 const definition = {
   id: "memory-4layer",
-  name: "四层记忆系统",
+  name: "@tcnxm23/memory-4layer",
   kind: "memory",
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
